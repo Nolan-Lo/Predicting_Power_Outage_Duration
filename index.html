@@ -5,30 +5,573 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Predicting Power Outage Durations</title>
     <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --bg: #fafafa;
+            --card-bg: #ffffff;
+            --text: #333;
+            --muted: #666;
+            --border: #e0e0e0;
+        }
+        * { box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
-            max-width: 900px;
+            max-width: 960px;
             margin: 0 auto;
-            padding: 2rem;
-            line-height: 1.6;
-            color: #333;
-            background: #fafafa;
+            padding: 2rem 1.5rem;
+            line-height: 1.7;
+            color: var(--text);
+            background: var(--bg);
         }
         h1 {
-            border-bottom: 2px solid #2c3e50;
+            font-size: 2rem;
+            border-bottom: 3px solid var(--primary);
             padding-bottom: 0.5rem;
-            color: #2c3e50;
+            color: var(--primary);
+            margin-bottom: 0.25rem;
+        }
+        h2 {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-top: 2.5rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.3rem;
+        }
+        h3 {
+            font-size: 1.2rem;
+            color: var(--primary);
+            margin-top: 1.5rem;
         }
         .authors {
             font-size: 1.1rem;
-            color: #555;
-            margin-bottom: 2rem;
+            color: var(--muted);
+            margin-bottom: 1.5rem;
         }
+        .plot-container {
+            width: 100%;
+            margin: 1.5rem 0;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            background: white;
+        }
+        .plot-container iframe {
+            width: 100%;
+            height: 500px;
+            border: none;
+        }
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: white;
+            padding: 1rem;
+        }
+        table.dataframe {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 0.85rem;
+        }
+        table.dataframe th,
+        table.dataframe td {
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            text-align: left;
+        }
+        table.dataframe th {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+        table.dataframe tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        table.styled {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 0.9rem;
+            margin: 1rem 0;
+        }
+        table.styled th,
+        table.styled td {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            text-align: left;
+        }
+        table.styled th {
+            background: #ecf0f1;
+            font-weight: 600;
+        }
+        blockquote {
+            border-left: 4px solid var(--accent);
+            margin: 1rem 0;
+            padding: 0.5rem 1rem;
+            background: #ebf5fb;
+            border-radius: 0 4px 4px 0;
+        }
+        code {
+            background: #f0f0f0;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        .metric-box {
+            display: inline-block;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.75rem 1.25rem;
+            margin: 0.5rem 0.5rem 0.5rem 0;
+            text-align: center;
+        }
+        .metric-box .label { font-size: 0.8rem; color: var(--muted); }
+        .metric-box .value { font-size: 1.3rem; font-weight: 700; color: var(--primary); }
+        ul, ol { padding-left: 1.5rem; }
+        li { margin-bottom: 0.3rem; }
+        strong { color: #1a1a1a; }
+        .nav {
+            background: var(--primary);
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            margin-bottom: 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+        }
+        .nav a {
+            color: #ecf0f1;
+            text-decoration: none;
+            padding: 0.3rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+        .nav a:hover { background: rgba(255,255,255,0.15); }
     </style>
 </head>
 <body>
-    <h1>Predicting Power Outage Durations: Does Weather Play a Role?</h1>
-    <p class="authors"><strong>By:</strong> Nolan Lo, Mehul Kalsi, Jacob Sease</p>
-    <p><em>More content coming soon — this page will be updated with our full analysis.</em></p>
+
+<h1>Predicting Power Outage Durations: Does Weather Play a Role?</h1>
+<p class="authors"><strong>By:</strong> Nolan Lo, Mehul Kalsi, Jacob Sease</p>
+
+<nav class="nav">
+    <a href="#introduction">Introduction</a>
+    <a href="#cleaning">Data Cleaning &amp; EDA</a>
+    <a href="#missingness">Missingness</a>
+    <a href="#hypothesis">Hypothesis Testing</a>
+    <a href="#prediction">Prediction Problem</a>
+    <a href="#baseline">Baseline Model</a>
+    <a href="#final">Final Model</a>
+</nav>
+
+<!-- ============================================================ -->
+<h2 id="introduction">Step 1: Introduction</h2>
+
+<p>
+    The dataset records <strong>major power outages</strong> in the continental United States from
+    January 2000 to July 2016. It contains <strong>1,534 rows</strong> (one per outage event) and
+    56 columns capturing when and where each outage occurred, its cause and duration, the number of
+    customers affected, regional climate characteristics, electricity consumption patterns, and
+    state-level economic and demographic indicators.
+</p>
+
+<blockquote>
+    <strong>Central question:</strong> What are the biggest factors that determine how long a power outage lasts?
+</blockquote>
+
+<p>
+    Understanding outage duration matters because longer outages pose greater risks to public safety,
+    disrupt hospitals and emergency services, and impose significant economic costs. By identifying the
+    features most predictive of duration, utilities and policymakers could allocate repair crews and
+    emergency resources more effectively.
+</p>
+
+<h3>Relevant Columns</h3>
+<table class="styled">
+    <thead>
+        <tr><th>Column</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><code>OUTAGE.DURATION</code></td><td>Duration of the outage in minutes (our prediction target)</td></tr>
+        <tr><td><code>CAUSE.CATEGORY</code></td><td>Category of the event that caused the outage (e.g., severe weather, intentional attack)</td></tr>
+        <tr><td><code>CLIMATE.REGION</code></td><td>U.S. climate region where the outage occurred (9 regions)</td></tr>
+        <tr><td><code>MONTH</code></td><td>Month the outage started (1–12)</td></tr>
+        <tr><td><code>ANOMALY.LEVEL</code></td><td>Oceanic El Niño/La Niña cold &amp; warm episodes index</td></tr>
+        <tr><td><code>POPULATION</code></td><td>Population of the state where the outage occurred</td></tr>
+        <tr><td><code>POPPCT_URBAN</code></td><td>Percentage of the state's population living in urban areas</td></tr>
+        <tr><td><code>OUTAGE.START.DATE / TIME</code></td><td>Date and time the outage began (combined into <code>OUTAGE.START</code>)</td></tr>
+        <tr><td><code>OUTAGE.RESTORATION.DATE / TIME</code></td><td>Date and time power was restored (combined into <code>OUTAGE.RESTORATION</code>)</td></tr>
+        <tr><td><code>CUSTOMERS.AFFECTED</code></td><td>Number of customers affected (used in missingness analysis, not prediction)</td></tr>
+        <tr><td><code>DEMAND.LOSS.MW</code></td><td>Peak demand loss in megawatts (used in NMAR analysis)</td></tr>
+        <tr><td><code>TOTAL.PRICE</code></td><td>Average monthly retail electricity price in the state (cents/kWh)</td></tr>
+    </tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="cleaning">Step 2: Data Cleaning and Exploratory Data Analysis</h2>
+
+<h3>Data Cleaning Steps</h3>
+<p>The raw data is an Excel file with several metadata rows at the top. Our cleaning process:</p>
+<ol>
+    <li><strong>Skipped metadata rows</strong> (rows 0–4 and a units row at index 6) when loading the file with <code>pd.read_excel</code>, and dropped the empty <code>variables</code> column.</li>
+    <li><strong>Combined date and time columns</strong> into single timestamps: <code>OUTAGE.START.DATE</code> + <code>OUTAGE.START.TIME</code> → <code>OUTAGE.START</code> (a <code>pd.Timestamp</code>), and likewise <code>OUTAGE.RESTORATION.DATE</code> + <code>OUTAGE.RESTORATION.TIME</code> → <code>OUTAGE.RESTORATION</code>. This was done using <code>pd.to_datetime</code> and <code>pd.to_timedelta</code>. We then dropped the four original date/time columns.</li>
+    <li>The resulting cleaned DataFrame has <strong>1,534 rows × 54 columns</strong>.</li>
+</ol>
+<p>These cleaning steps reflect the data generating process: outage start and restoration are naturally single points in time, not separate date and time fields — the original split was an artifact of the spreadsheet format.</p>
+
+<h3>Head of Cleaned DataFrame</h3>
+<div class="table-container" id="df-head-container">
+    <p><em>Loading table…</em></p>
+</div>
+
+<h3>Univariate Analysis — Distribution of Outage Duration</h3>
+<div class="plot-container">
+    <iframe src="assets/fig1_duration_hist.html" title="Distribution of Outage Duration"></iframe>
+</div>
+<p>
+    The histogram shows that outage durations are <strong>extremely right-skewed</strong>: the vast
+    majority of outages last under ~5,000 minutes (≈3.5 days), while a long tail extends past 50,000
+    minutes. This suggests that a small number of catastrophic events (often severe weather) drive
+    extraordinarily long outages, while most outages are resolved relatively quickly.
+</p>
+
+<h3>Bivariate Analysis — Duration vs. Cause Category</h3>
+<div class="plot-container">
+    <iframe src="assets/fig2_duration_by_cause.html" title="Outage Duration by Cause Category"></iframe>
+</div>
+<p>
+    The box plot reveals that <strong>fuel supply emergencies</strong> have by far the highest
+    median outage duration, followed by severe weather events. In contrast, <strong>intentional
+    attacks</strong> (e.g., vandalism/sabotage) tend to have very short durations. This supports our
+    hypothesis that cause category is a strong predictor of outage length.
+</p>
+
+<h3>Interesting Aggregate — Mean Duration by Cause × Climate Region</h3>
+<div class="table-container" id="pivot-container">
+    <p><em>Loading pivot table…</em></p>
+</div>
+<p>
+    The pivot table shows mean outage duration (in minutes) for each combination of cause category
+    and climate region. Fuel supply emergencies stand out with extremely high average durations in
+    certain regions (e.g., East North Central), while intentional attacks consistently have short
+    durations across all regions. The many "—" cells indicate cause–region combinations with no
+    recorded outages, reflecting geographic concentration of certain outage types. This highlights
+    that <strong>both cause category and climate region jointly influence outage length</strong>,
+    motivating their inclusion as features in our prediction model.
+</p>
+
+<!-- ============================================================ -->
+<h2 id="missingness">Step 3: Assessment of Missingness</h2>
+
+<h3>NMAR Analysis</h3>
+<p>
+    We believe the column <code>DEMAND.LOSS.MW</code> (missing in ~46% of rows) is likely
+    <strong>NMAR</strong>. Our reasoning is that demand loss is only carefully measured and
+    reported when the outage is significant enough to warrant detailed tracking. When the actual
+    demand loss is very small or negligible (e.g., a brief localized outage), utilities may not
+    bother recording the precise megawatt loss, so the value is left blank. In other words, the
+    <em>probability that <code>DEMAND.LOSS.MW</code> is missing depends on its own (unobserved)
+    value</em> — small demand losses are less likely to be recorded — which is the defining
+    characteristic of NMAR.
+</p>
+<p>
+    <strong>Additional data that could make it MAR:</strong> If we obtained each utility's
+    <em>reporting threshold</em> (the minimum MW loss that triggers mandatory reporting) and their
+    internal <em>data completeness policies</em>, then the missingness could be explained by these
+    external factors rather than the value itself, converting the missingness mechanism from NMAR
+    to MAR.
+</p>
+
+<h3>Missingness Dependency</h3>
+<p>
+    We analyzed the missingness of <code>CUSTOMERS.AFFECTED</code> (missing in ~29% of rows) with
+    two permutation tests at the <strong>α = 0.05 significance level</strong>:
+</p>
+
+<h4>Test 1: Missingness vs. <code>CAUSE.CATEGORY</code> (TVD)</h4>
+<div class="plot-container">
+    <iframe src="assets/fig3_missingness_cause.html" title="Missingness permutation test: CAUSE.CATEGORY"></iframe>
+</div>
+<p>
+    <strong>Result:</strong> Observed TVD ≈ 0.557, p-value ≈ 0.0 (out of 1,000 permutations, none
+    produced a TVD as extreme). We <strong>reject the null hypothesis</strong> — the missingness of
+    <code>CUSTOMERS.AFFECTED</code> <strong>does depend on</strong> the cause of the outage. For
+    example, fuel supply emergencies and intentional attacks are far more likely to have missing
+    customer counts than severe weather events. This means <code>CUSTOMERS.AFFECTED</code> is
+    <strong>MAR</strong> (Missing At Random) with respect to <code>CAUSE.CATEGORY</code>.
+</p>
+
+<h4>Test 2: Missingness vs. <code>TOTAL.PRICE</code> (Difference in Means)</h4>
+<div class="plot-container">
+    <iframe src="assets/fig4_missingness_price.html" title="Missingness permutation test: TOTAL.PRICE"></iframe>
+</div>
+<p>
+    <strong>Result:</strong> Observed |diff in means| ≈ 0.118 cents/kWh, p-value ≈ 0.476. We
+    <strong>fail to reject the null hypothesis</strong> — the average electricity price in a state
+    <strong>does not appear to influence</strong> whether customer counts are recorded.
+</p>
+
+<!-- ============================================================ -->
+<h2 id="hypothesis">Step 4: Hypothesis Testing</h2>
+
+<p>
+    <strong>Null (H₀):</strong> The mean <code>OUTAGE.DURATION</code> is the same for severe-weather
+    outages and non-severe-weather outages. Any observed difference is due to random chance.
+</p>
+<p>
+    <strong>Alternative (H₁):</strong> Severe-weather outages have a <strong>longer</strong> mean
+    duration than non-severe-weather outages (one-sided).
+</p>
+<p>
+    <strong>Test statistic:</strong> Difference in group means (mean duration of severe weather −
+    mean duration of non-severe-weather).<br>
+    <strong>Significance level:</strong> α = 0.05.
+</p>
+<p>
+    <strong>Why these choices:</strong> Our central question asks what drives outage duration, and
+    severe weather is the most common cause category. A one-sided test is appropriate because we have
+    a directional hypothesis motivated by the EDA. The difference in means is a natural and
+    interpretable test statistic for comparing the central tendency of two groups.
+</p>
+
+<div class="plot-container">
+    <iframe src="assets/fig5_hypothesis_test.html" title="Hypothesis test permutation distribution"></iframe>
+</div>
+
+<p>
+    <strong>Result:</strong> The observed difference was ~2,538 minutes with a <strong>p-value ≈ 0.0</strong>
+    (out of 10,000 permutations, none produced a difference as large). We <strong>reject the null
+    hypothesis</strong> at α = 0.05.
+</p>
+<p>
+    The data provide strong evidence that severe-weather outages tend to have longer durations
+    than non-severe-weather outages. This aligns with our EDA findings and supports including
+    <code>CAUSE.CATEGORY</code> as a key feature in our prediction model. However, we note that this
+    is an observational finding — we cannot claim a causal relationship from this test alone.
+</p>
+
+<!-- ============================================================ -->
+<h2 id="prediction">Step 5: Framing a Prediction Problem</h2>
+
+<p>
+    <strong>Prediction problem:</strong> Predict <code>OUTAGE.DURATION</code> (outage duration in minutes).
+</p>
+<p>
+    <strong>Type:</strong> <strong>Regression</strong> — <code>OUTAGE.DURATION</code> is a
+    continuous numeric variable ranging from 0 to ~108,000 minutes.
+</p>
+<p>
+    <strong>Response variable:</strong> <code>OUTAGE.DURATION</code>. We chose this because outage
+    duration is the most direct measure of outage severity from a planning perspective, and our
+    central question asks what factors most influence it.
+</p>
+<p>
+    <strong>Evaluation metric:</strong> <strong>Root Mean Squared Error (RMSE)</strong>. We chose
+    RMSE over alternatives because:
+</p>
+<ul>
+    <li>Unlike R², RMSE is on the same scale as the response variable (minutes), making it directly interpretable.</li>
+    <li>Unlike Mean Absolute Error (MAE), RMSE penalizes large prediction errors more heavily,
+        which is appropriate here since severely under-predicting a long outage is costlier than
+        slightly mis-predicting a short one.</li>
+</ul>
+<p>
+    <strong>Features available at time of prediction:</strong> At the moment an outage begins, we
+    would plausibly know the cause category, climate region, month, climate anomaly level, state
+    population, and urbanization percentage. We would <strong>not</strong> know
+    <code>CUSTOMERS.AFFECTED</code>, <code>DEMAND.LOSS.MW</code>, or
+    <code>OUTAGE.RESTORATION</code> at prediction time, since those are only known after or during
+    the outage.
+</p>
+
+<!-- ============================================================ -->
+<h2 id="baseline">Step 6: Baseline Model</h2>
+
+<p>
+    <strong>Model:</strong> Ordinary Least Squares (Linear Regression) in a single
+    <code>sklearn Pipeline</code>.
+</p>
+
+<h3>Features (2 total)</h3>
+<table class="styled">
+    <thead>
+        <tr><th>Feature</th><th>Type</th><th>Encoding</th></tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>CAUSE.CATEGORY</code></td>
+            <td><strong>Nominal</strong> (7 unique categories)</td>
+            <td><code>OneHotEncoder</code> (drop first → 6 indicator columns)</td>
+        </tr>
+        <tr>
+            <td><code>MONTH</code></td>
+            <td><strong>Quantitative</strong> (1–12)</td>
+            <td><code>StandardScaler</code> (centered, unit variance)</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>Performance</h3>
+<div>
+    <div class="metric-box">
+        <div class="label">Test RMSE</div>
+        <div class="value">~7,184 min</div>
+    </div>
+    <div class="metric-box">
+        <div class="label">Test R²</div>
+        <div class="value">0.159</div>
+    </div>
+    <div class="metric-box">
+        <div class="label">Naive Baseline RMSE</div>
+        <div class="value">~7,847 min</div>
+    </div>
+</div>
+
+<p>
+    <strong>Assessment:</strong> This baseline model is <strong>not good</strong>. It explains only
+    ~16% of the variance in outage duration, and its RMSE of ~7,184 minutes means predictions are
+    off by roughly 5 days on average. While it beats the naive strategy of always predicting the
+    mean (RMSE ≈ 7,847 min), the improvement is modest. The large errors are expected since we are
+    using only two features and a simple linear model that cannot capture non-linear relationships
+    or interactions.
+</p>
+
+<!-- ============================================================ -->
+<h2 id="final">Step 7: Final Model</h2>
+
+<h3>New Features Added</h3>
+<table class="styled">
+    <thead>
+        <tr><th>Feature</th><th>Source</th><th>Transform</th><th>Rationale</th></tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>CLIMATE.REGION</code></td>
+            <td>Nominal (9 regions)</td>
+            <td><code>OneHotEncoder</code></td>
+            <td>Different climate regions face different weather patterns and infrastructure quality; our pivot table showed that mean duration varies substantially across regions.</td>
+        </tr>
+        <tr>
+            <td><code>ANOMALY.LEVEL</code></td>
+            <td>Quantitative</td>
+            <td><code>QuantileTransformer</code></td>
+            <td>Captures oceanic-atmospheric conditions (El Niño/La Niña) that influence storm severity. The quantile transform maps this to a uniform distribution, helping the tree-based model split more effectively on extreme values.</td>
+        </tr>
+        <tr>
+            <td><code>POPULATION</code></td>
+            <td>Quantitative</td>
+            <td><code>QuantileTransformer</code></td>
+            <td>States with larger populations may have more complex grids but also more repair crews. Raw population is very right-skewed; the quantile transform normalizes the distribution.</td>
+        </tr>
+        <tr>
+            <td><code>POPPCT_URBAN</code></td>
+            <td>Quantitative (0–100%)</td>
+            <td>Passthrough</td>
+            <td>Higher urbanization correlates with denser infrastructure and faster repair access. Already on a reasonable scale as a percentage.</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>Modeling Algorithm</h3>
+<p>
+    We use a <strong>Random Forest Regressor</strong> because it naturally captures
+    <strong>non-linear relationships</strong> and <strong>feature interactions</strong> (e.g.,
+    severe weather × certain climate regions may compound duration), and it is robust to the extreme
+    outliers present in our heavy-tailed target variable.
+</p>
+
+<h3>Hyperparameter Tuning</h3>
+<p>
+    We used <code>GridSearchCV</code> with 5-fold cross-validation, scoring by negative RMSE, over
+    the following grid:
+</p>
+<table class="styled">
+    <thead>
+        <tr><th>Hyperparameter</th><th>Candidates</th><th>Best Value</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><code>n_estimators</code></td><td>100, 200, 300</td><td><strong>100</strong></td></tr>
+        <tr><td><code>max_depth</code></td><td>5, 10, 20, None</td><td><strong>10</strong></td></tr>
+        <tr><td><code>min_samples_split</code></td><td>2, 5, 10</td><td><strong>10</strong></td></tr>
+    </tbody>
+</table>
+<p>
+    The moderate depth (10) and larger minimum split size (10) indicate that regularization helps
+    — unrestricted trees overfit to the training set's extreme outlier durations.
+</p>
+
+<h3>Performance Comparison</h3>
+<table class="styled">
+    <thead>
+        <tr><th>Metric</th><th>Baseline (Linear Regression)</th><th>Final (Random Forest)</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Test RMSE</td><td>~7,184 min</td><td><strong>~6,888 min</strong></td></tr>
+        <tr><td>Test R²</td><td>0.159</td><td><strong>0.225</strong></td></tr>
+    </tbody>
+</table>
+
+<div>
+    <div class="metric-box">
+        <div class="label">RMSE Improvement</div>
+        <div class="value">~296 min (4.1%)</div>
+    </div>
+    <div class="metric-box">
+        <div class="label">R² Improvement</div>
+        <div class="value">0.159 → 0.225</div>
+    </div>
+</div>
+
+<p>
+    The final model reduces test RMSE by ~296 minutes and increases R² from 0.16 to 0.23 (a ~41%
+    relative gain). While the absolute improvement is modest, the model captures meaningfully more
+    variance. The scatter plot below shows predictions clustering closer to the diagonal (perfect
+    prediction) line, though the model still struggles with extreme-duration outliers — a
+    fundamental challenge given the heavy-tailed distribution.
+</p>
+
+<div class="plot-container">
+    <iframe src="assets/fig6_actual_vs_predicted.html" title="Actual vs Predicted scatter plot"></iframe>
+</div>
+
+<p>
+    <strong>Why the new features help</strong> (from a data-generating perspective):
+</p>
+<ul>
+    <li><strong>Climate region</strong> captures regional infrastructure differences (age of grid, terrain, crew availability) and regional weather patterns that influence repair time.</li>
+    <li><strong>Anomaly level</strong> reflects oceanic-atmospheric conditions that drive more intense storms, potentially prolonging outages.</li>
+    <li><strong>Population</strong> proxies for grid complexity and available repair resources.</li>
+    <li><strong>Urban percentage</strong> relates to infrastructure density; urban areas typically have faster restoration due to proximity of repair crews and equipment.</li>
+</ul>
+
+<!-- ============================================================ -->
+
+<script>
+    // Load the DataFrame head and pivot table HTML fragments
+    fetch('assets/df_head.html')
+        .then(r => r.text())
+        .then(html => {
+            document.getElementById('df-head-container').innerHTML = html;
+            const tbl = document.querySelector('#df-head-container table');
+            if (tbl) tbl.classList.add('dataframe');
+        })
+        .catch(() => {
+            document.getElementById('df-head-container').innerHTML = '<p><em>Table could not be loaded.</em></p>';
+        });
+
+    fetch('assets/pivot_table.html')
+        .then(r => r.text())
+        .then(html => {
+            document.getElementById('pivot-container').innerHTML = html;
+            const tbl = document.querySelector('#pivot-container table');
+            if (tbl) tbl.classList.add('dataframe');
+        })
+        .catch(() => {
+            document.getElementById('pivot-container').innerHTML = '<p><em>Pivot table could not be loaded.</em></p>';
+        });
+</script>
+
 </body>
 </html>
