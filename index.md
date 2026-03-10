@@ -16,12 +16,12 @@ title: "Predicting Power Outage Durations"
         * { box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 2rem 1.5rem;
             line-height: 1.7;
             color: var(--text);
             background: var(--bg);
+        }
+        .main-content {
+            max-width: 960px;
         }
         h1 {
             font-size: 2rem;
