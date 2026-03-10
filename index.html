@@ -164,6 +164,7 @@
     <a href="#prediction">Prediction Problem</a>
     <a href="#baseline">Baseline Model</a>
     <a href="#final">Final Model</a>
+    <a href="#fairness">Fairness Analysis</a>
 </nav>
 
 <!-- ============================================================ -->
@@ -545,6 +546,66 @@
     <li><strong>Population</strong> proxies for grid complexity and available repair resources.</li>
     <li><strong>Urban percentage</strong> relates to infrastructure density; urban areas typically have faster restoration due to proximity of repair crews and equipment.</li>
 </ul>
+
+<!-- ============================================================ -->
+<h2 id="fairness">Step 8: Fairness Analysis</h2>
+
+<p>
+    We investigate whether our final model performs differently for outages in <strong>urban</strong>
+    vs. <strong>rural</strong> states. We split test-set observations into two groups using the
+    median of <code>POPPCT_URBAN</code> (84.7%) in the test set:
+</p>
+<ul>
+    <li><strong>Group X (urban):</strong> States with <code>POPPCT_URBAN</code> &ge; 84.7%</li>
+    <li><strong>Group Y (rural):</strong> States with <code>POPPCT_URBAN</code> &lt; 84.7%</li>
+</ul>
+
+<p><strong>Evaluation metric:</strong> RMSE (Root Mean Squared Error) &mdash; appropriate for a regression model.</p>
+
+<p>
+    <strong>Null Hypothesis (H&#8320;):</strong> Our model is fair. Its RMSE for rural states and
+    urban states are roughly the same, and any observed difference is due to random chance.
+</p>
+<p>
+    <strong>Alternative Hypothesis (H&#8321;):</strong> Our model is unfair. Its RMSE for rural
+    states is higher than its RMSE for urban states.
+</p>
+<p>
+    <strong>Test statistic:</strong> RMSE(rural) &minus; RMSE(urban)<br>
+    <strong>Significance level:</strong> &alpha; = 0.05
+</p>
+
+<h3>Results</h3>
+<div>
+    <div class="metric-box">
+        <div class="label">Urban RMSE</div>
+        <div class="value">4,548 min</div>
+    </div>
+    <div class="metric-box">
+        <div class="label">Rural RMSE</div>
+        <div class="value">8,625 min</div>
+    </div>
+    <div class="metric-box">
+        <div class="label">Observed Diff</div>
+        <div class="value">4,077 min</div>
+    </div>
+    <div class="metric-box">
+        <div class="label">p-value</div>
+        <div class="value">0.388</div>
+    </div>
+</div>
+
+<div class="plot-container">
+    <iframe src="assets/fig7_fairness_test.html" title="Fairness permutation test"></iframe>
+</div>
+
+<p>
+    <strong>Conclusion:</strong> At &alpha; = 0.05, we <strong>fail to reject the null hypothesis</strong>
+    (p = 0.388). Although the rural group has a numerically higher RMSE (8,625 vs. 4,548 minutes),
+    this difference is not statistically significant &mdash; it could plausibly arise from random
+    variation in which outage events happen to fall into each group. We do not have sufficient
+    evidence to conclude that our model is unfair across urban and rural states.
+</p>
 
 <!-- ============================================================ -->
 
