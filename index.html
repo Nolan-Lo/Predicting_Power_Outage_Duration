@@ -1,3 +1,6 @@
+---
+layout: null
+---
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -168,7 +171,7 @@
 </nav>
 
 <!-- ============================================================ -->
-<h2 id="introduction">Step 1: Introduction</h2>
+<h2 id="introduction">Introduction</h2>
 
 <p>
     The dataset records <strong>major power outages</strong> in the continental United States from
@@ -211,7 +214,7 @@
 </table>
 
 <!-- ============================================================ -->
-<h2 id="cleaning">Step 2: Data Cleaning and Exploratory Data Analysis</h2>
+<h2 id="cleaning">Data Cleaning and Exploratory Data Analysis</h2>
 
 <h3>Data Cleaning Steps</h3>
 <p>The raw data is an Excel file with several metadata rows at the top. Our cleaning process:</p>
@@ -264,7 +267,7 @@
 </p>
 
 <!-- ============================================================ -->
-<h2 id="missingness">Step 3: Assessment of Missingness</h2>
+<h2 id="missingness">Assessment of Missingness</h2>
 
 <h3>NMAR Analysis</h3>
 <p>
@@ -315,7 +318,7 @@
 </p>
 
 <!-- ============================================================ -->
-<h2 id="hypothesis">Step 4: Hypothesis Testing</h2>
+<h2 id="hypothesis">Hypothesis Testing</h2>
 
 <p>
     <strong>Null (H₀):</strong> The mean <code>OUTAGE.DURATION</code> is the same for severe-weather
@@ -354,7 +357,7 @@
 </p>
 
 <!-- ============================================================ -->
-<h2 id="prediction">Step 5: Framing a Prediction Problem</h2>
+<h2 id="prediction">Framing a Prediction Problem</h2>
 
 <p>
     <strong>Prediction problem:</strong> Predict <code>OUTAGE.DURATION</code> (outage duration in minutes).
@@ -388,7 +391,7 @@
 </p>
 
 <!-- ============================================================ -->
-<h2 id="baseline">Step 6: Baseline Model</h2>
+<h2 id="baseline">Baseline Model</h2>
 
 <p>
     <strong>Model:</strong> Ordinary Least Squares (Linear Regression) in a single
@@ -440,7 +443,7 @@
 </p>
 
 <!-- ============================================================ -->
-<h2 id="final">Step 7: Final Model</h2>
+<h2 id="final">Final Model</h2>
 
 <h3>New Features Added</h3>
 <table class="styled">
@@ -548,7 +551,7 @@
 </ul>
 
 <!-- ============================================================ -->
-<h2 id="fairness">Step 8: Fairness Analysis</h2>
+<h2 id="fairness">Fairness Analysis</h2>
 
 <p>
     We investigate whether our final model performs differently for outages in <strong>urban</strong>
