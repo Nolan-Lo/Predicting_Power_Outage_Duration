@@ -1,13 +1,9 @@
 ---
-layout: null
+layout: default
+title: "Predicting Power Outage Durations"
 ---
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Predicting Power Outage Durations</title>
-    <style>
+
+<style>
         :root {
             --primary: #2c3e50;
             --accent: #3498db;
@@ -152,9 +148,7 @@ layout: null
             font-size: 0.85rem;
         }
         .nav a:hover { background: rgba(255,255,255,0.15); }
-    </style>
-</head>
-<body>
+</style>
 
 <h1>Predicting Power Outage Durations: Does Weather Play a Role?</h1>
 <p class="authors"><strong>By:</strong> Nolan Lo, Mehul Kalsi, Jacob Sease</p>
@@ -613,7 +607,6 @@ layout: null
 <!-- ============================================================ -->
 
 <script>
-    // Load the DataFrame head and pivot table HTML fragments
     fetch('assets/df_head.html')
         .then(r => r.text())
         .then(html => {
@@ -636,6 +629,3 @@ layout: null
             document.getElementById('pivot-container').innerHTML = '<p><em>Pivot table could not be loaded.</em></p>';
         });
 </script>
-
-</body>
-</html>
